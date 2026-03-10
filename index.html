@@ -329,7 +329,7 @@
 
         // Sistem Gred
         function getGrade(mark) {
-            if (mark === '' || mark === 'TH' return 'TH' || mark === null) return '-';
+            if (mark === '' || mark === null) return '-';
             let m = parseFloat(mark);
             if (m >= 90) return 'A+';
             if (m >= 80) return 'A';
