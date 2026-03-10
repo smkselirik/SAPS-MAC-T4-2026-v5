@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Kemasukan Markah 2026</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #3b82f6;
+            --background: #f3f4f6;
+            --text: #1f2937;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 { margin: 0; font-size: 1.8rem; }
+        header p { margin: 5px 0 0 0; font-size: 1.1rem; color: #bfdbfe; }
+        
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .input-group { margin-bottom: 1.5rem; }
+        .input-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: var(--primary); }
+        button.danger { background-color: #ef4444; }
+        button.danger:hover { background-color: #b91c1c; }
+        button.warning { background-color: #f59e0b; }
+
+        .hidden { display: none; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th { background-color: #f9fafb; font-weight: bold; }
+        td input[type="number"] { width: 80px; padding: 0.5rem; }
+
+        .dashboard-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .dashboard-nav button { flex: 1; }
+
+        footer {
+            background-color: #1f2937;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>SMK SELIRIK,KAPIT</h1>
+        <p>Sistem Kemasukan Markah Peperiksaan Pertengahan 1 (Mac) 2026</p>
+    </header>
+
+    <main>
+        <div id="loginSection" class="card">
+            <h2>Log Masuk Guru</h2>
+            <div class="input-group">
+                <label for="icNumber">No. Kad Pengenalan (ID):</label>
+                <input type="text" id="icNumber" placeholder="Cth: 800101010101">
+            </div>
+            <button onclick="login()">Log Masuk Semakan</button>
+            <p id="loginError" style="color: red; margin-top: 10px;" class="hidden">Sila semak semula No Kad Pengenalan anda.</p>
+        </div>
+
+        <div id="dashboardSection" class="hidden">
+            <div class="card">
+                <h2 id="teacherNameDisplay">Selamat Datang, Guru</h2>
+                
+                <div class="dashboard-nav">
+                    <button onclick="showEntryTab()">Kemasukan Markah Baru</button>
+                    <button class="warning" onclick="showManageTab()">Urus/Semak Markah</button>
+                </div>
+
+                <div id="entryTab">
+                    <div class="input-group">
+                        <label for="subjectSelect">Pilih Subjek & Kelas:</label>
+                        <select id="subjectSelect" onchange="loadStudents()">
+                            <option value="">-- Sila Pilih --</option>
+                        </select>
+                    </div>
+
+                    <div id="loadingStudents" class="loading hidden">Memuat turun senarai pelajar...</div>
+                    
+                    <div id="studentTableContainer" class="hidden">
+                        <table id="marksTable">
+                            <thead>
+                                <tr>
+                                    <th>Bil</th>
+                                    <th>Nama Pelajar</th>
+                                    <th>Kelas</th>
+                                    <th>Markah</th>
+                                    <th>Gred</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                        <br>
+                        <button onclick="submitMarks()">Hantar Markah ke Pengkalan Data</button>
+                    </div>
+                </div>
+
+                <div id="manageTab" class="hidden">
+                    <h3>Rekod Markah Semasa (Dashboard)</h3>
+                    <p style="font-size: 0.9rem; color: #4b5563;">Markah yang telah disimpan secara lokal dipaparkan di sini untuk semakan dan pengemaskinian sebelum diselaraskan sepenuhnya di pelayan.</p>
+                    <table id="savedMarksTable">
+                        <thead>
+                            <tr>
+                                <th>Nama Pelajar</th>
+                                <th>Subjek/Kelas</th>
+                                <th>Markah</th>
+                                <th>Gred</th>
+                                <th>Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        &copy; Hakcipta NDJE@Selirik, Kapit 2026
+    </footer>
+
+    <script>
+        // Data Guru berdasarkan senarai
+        const teachers = {
+            "850805135684": { name: "NATALIE DAMIE ANAK JACOB ENGGAH", subjects: ["BAHASA INGGERIS 4ST1", "BAHASA INGGERIS 4A2", "BAHASA INGGERIS 4A4"] },
+            "800530125085": { name: "ARNOLD JUNIOR AUGUSTINE", subjects: ["BAHASA INGGERIS 4SN"] },
+            "860129525618": { name: "RUNA ANAK SANGGONG", subjects: ["BAHASA INGGERIS 4KAG", "BAHASA INGGERIS 4ST2"] },
+            "981014135899": { name: "GEORGE CHONG", subjects: ["BAHASA INGGERIS 4A3", "BAHASA INGGERIS 4ST3"] },
+            "980627135299": { name: "DARREN GILBERT ANAK KOH", subjects: ["BAHASA INGGERIS 4A1"] },
+            "860805526983": { name: "GRAY ANAK JOWIM@JOWIN", subjects: ["SEJARAH 4ST2", "SEJARAH 4A3", "SEJARAH 4A4"] },
+            "911129136097": { name: "AQKMAL HAZIM BIN MUD", subjects: ["SEJARAH 4ST3", "SEJARAH 4A2"] },
+            "871226525496": { name: "KAREN MAWAS ANAK ARAH", subjects: ["SEJARAH 4ST1", "SEJARAH 4KAG", "SEJARAH 4A1"] },
+            "900620137707": { name: "YONG KASI SIONG", subjects: ["SEJARAH 4SN"] },
+            "800718135867": { name: "KONG CHUNG SHING", subjects: ["SAINS 4ST3", "SAINS 4A4"] },
+            "861122135080": { name: "ALEXANRA ANAK ANDREW KANA", subjects: ["MATEMATIK TAMBAHAN 4SN"] },
+            "920312135206": { name: "ANDREA AK RIWIK", subjects: ["SAINS KOMPUTER 4SN"] },
+            "961130135644": { name: "ATHIASIA ANAK ENJANG", subjects: ["BAHASA MELAYU 4A1", "BAHASA MELAYU 4A2"] },
+            "970825016670": { name: "BRENDA AIMA ANAK JOSHUA MARIYAM", subjects: ["SAINS 4KAG", "SAINS 4ST1", "BIOLOGY 4SN"] },
+            "860116525619": { name: "MOHD CABERINI BIN LINANG", subjects: ["PENDIDIKAN SENI VISUAL 4A1", "PENDIDIKAN SENI VISUAL 4A3"] },
+            "880504525432": { name: "CECELIA ANAK JANES", subjects: ["PENGAJIAN PENIAGAAN 4ST1"] },
+            "920317036207": { name: "CHE MOHD UDAIY BIN CHE ABDUL HADI", subjects: ["PHYSICS 4SN"] },
+            "930112135956": { name: "CHRISTINA ADANG ANAK RAMA", subjects: ["BAHASA MELAYU 4SN", "BAHASA MELAYU 4A4"] },
+            "910722136085": { name: "DESMOND ANAK LINGGI", subjects: ["BAHASA MELAYU 4KAG"] },
+            "840607135430": { name: "DIANA ANAK LIMBI", subjects: ["SAINS 4A1", "SAINS 4ST2"] },
+            "990902135672": { name: "ELLLSIE ANAK IRIN", subjects: ["REKA CIPTA 4ST2", "REKA CIPTA 4ST3"] },
+            "900811136926": { name: "ENDON ANAK BAKAR", subjects: ["PENDIDIKAN MORAL 4ST1", "PENDIDIKAN MORAL 4A1", "PENDIDIKAN MORAL 4A4"] },
+            "010227130467": { name: "GONZALES ANAK ABING", subjects: ["MATEMATIK 4SN", "MATEMATIK 4ST3", "MATEMATIK 4A1", "MATEMATIK 4A4", "MATEMATIK 4KAG"] },
+            "940628135710": { name: "JACINTA ANAK BUDIT", subjects: ["SAINS 4A2"] },
+            "900219137495": { name: "KENNY ANAK TAWAI", subjects: ["BAHASA MELAYU 4ST3"] },
+            "920826136695": { name: "MOHAMAD ZAID BIN ZAIDI", subjects: ["KIMPALAN ARKA & GAS 4KAG"] },
+            "961018035889": { name: "MOHAMAD FAZREEN BIN ZAINUDIN", subjects: ["PENDIDIKAN JASMANI & KESIHATAN 4ST2", "PENDIDIKAN JASMANI & KESIHATAN 4A4"] },
+            "790311135404": { name: "NORA ANAK ENGKOL", subjects: ["BAHASA MELAYU 4ST2"] },
+            "930403135198": { name: "NURUL SAMIZA BT ABANG", subjects: ["MATEMATIK 4ST1", "MATEMATIK 4A2", "MATEMATIK 4A3"] },
+            "840910135126": { name: "SANTI ANAK THOMAS NANANG", subjects: ["BAHASA IBAN 4ST2"] },
+            "940318135694": { name: "SIA KANG YEE", subjects: ["CHEMISTRY 4SN"] },
+            "941126135627": { name: "STANLEY ANAK TUNGKU", subjects: ["PENDIDIKAN SENI VISUAL 4A2", "PENDIDIKAN SENI VISUAL 4A4"] },
+            "000628130602": { name: "STEPHANIE ANAK HARWELL", subjects: ["PENDIDIKAN JASMANI & KESIHATAN 4A1", "PENDIDIKAN JASMANI & KESIHATAN 4KAG", "PENDIDIKAN MORAL 4ST3", "PENDIDIKAN MORAL 4A2", "PENDIDIKAN MORAL 4A3"] },
+            "910306135868": { name: "STEPHANIE ANAK JUKY", subjects: ["SAINS 4A3"] },
+            "870404527095": { name: "SYLVESTER ANAK ANTHONY GONG", subjects: ["REKA CIPTA 4ST1"] },
+            "930903136162": { name: "TRACY DIANALEE ANAK MERANG", subjects: ["PENDIDIKAN MORAL 4SN", "PENDIDIKAN MORAL 4ST2", "PENDIDIKAN JASMANI & KESIHATAN 4ST3", "PENDIDIKAN JASMANI & KESIHATAN 4A3"] },
+            "730417055045": { name: "WONG CHEE LOONG", subjects: ["MATEMATIK 4ST2"] },
+            "920820135958": { name: "WONG CHU SING", subjects: ["BAHASA MELAYU 4ST1", "BAHASA MELAYU 4A3"] }
+        };
+
+        // Pemetaan Subjek kepada Kolum Google Sheet
+        const columnMap = {
+            "BAHASA MELAYU": "E", "BAHASA INGGERIS": "I", "SEJARAH": "G", "MATEMATIK": "K",
+            "PENDIDIKAN MORAL": "M", "PENDIDIKAN ISLAM": "O", "SAINS": "Q", "SAINS KOMPUTER": "AI",
+            "REKA CIPTA": "W", "PENDIDIKAN SENI VISUAL": "S", "KIMPALAN ARKA & GAS": "AK",
+            "BIOLOGY": "AE", "PHYSICS": "AA", "CHEMISTRY": "AC", "MATEMATIK TAMBAHAN": "AG",
+            "BAHASA IBAN": "U", "PENGAJIAN PENIAGAAN": "Y", "PENDIDIKAN JASMANI & KESIHATAN": "BK"
+        };
+
+        const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR831uDWcPfxf9zOj-mekolv_DMkdsYRMdVsxoLcKqwL88z-tetvP57ti5wB5M2dYIXYVZf9eX7R6Q8/pub?gid=1615224868&single=true&output=csv";
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbwerD50NrFM2c9Kcnc1Uuvk32Lj3TJxKbQFFRyh6Mv0wmxGtmxNpfYxMWoylFBU6mZ6/exec";
+        
+        let currentTeacher = null;
+        let allStudents = [];
+
+        // Log Masuk
+        function login() {
+            const ic = document.getElementById('icNumber').value.trim();
+            if (teachers[ic]) {
+                currentTeacher = teachers[ic];
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                document.getElementById('teacherNameDisplay').innerText = `Selamat Datang, ${currentTeacher.name}`;
+                
+                const select = document.getElementById('subjectSelect');
+                select.innerHTML = '<option value="">-- Sila Pilih --</option>';
+                currentTeacher.subjects.forEach(sub => {
+                    select.innerHTML += `<option value="${sub}">${sub}</option>`;
+                });
+                
+                fetchCSV(); // Muat turun data senarai pelajar
+                renderDashboard(); // Papar markah yang pernah disimpan lokal
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        // Ambil Data CSV
+        function fetchCSV() {
+            document.getElementById('loadingStudents').classList.remove('hidden');
+            Papa.parse(csvUrl, {
+                download: true,
+                header: false,
+                complete: function(results) {
+                    allStudents = results.data; // Data mentah
+                    document.getElementById('loadingStudents').classList.add('hidden');
+                }
+            });
+        }
+
+        // Tapis Pelajar berdasarkan Kelas (Kolum D / Index 3) & Nama (Kolum C / Index 2)
+        function loadStudents() {
+            const selection = document.getElementById('subjectSelect').value;
+            if (!selection) {
+                document.getElementById('studentTableContainer').classList.add('hidden');
+                return;
+            }
+
+            // Memisahkan nama subjek dan kelas (cth: "BAHASA INGGERIS 4ST1" -> Subjek: BAHASA INGGERIS, Kelas: 4ST1)
+            const parts = selection.split(" ");
+            const targetClass = parts.pop(); 
+            const subjectName = parts.join(" ");
+
+            const tbody = document.querySelector('#marksTable tbody');
+            tbody.innerHTML = '';
+            
+            let count = 1;
+            allStudents.forEach(row => {
+                // Andaikan baris pertama adalah header, pastikan kita ambil data yang sah
+                if (row.length > 3) {
+                    const studentName = row[2]; // Kolum C
+                    const studentClass = row[3]; // Kolum D
+                    
+                    if (studentClass && studentClass.trim() === targetClass) {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${count++}</td>
+                                <td>${studentName}</td>
+                                <td>${studentClass}</td>
+                                <td><input type="number" min="0" max="100" class="mark-input" data-name="${studentName}" data-subject="${subjectName}" data-class="${targetClass}" oninput="calculateGrade(this)"></td>
+                                <td><span class="grade-display">-</span></td>
+                            </tr>
+                        `;
+                    }
+                }
+            });
+
+            document.getElementById('studentTableContainer').classList.remove('hidden');
+        }
+
+        // Sistem Gred
+        function getGrade(mark) {
+            if (mark === '' || mark === null) return '-';
+            let m = parseFloat(mark);
+            if (m >= 90) return 'A+';
+            if (m >= 80) return 'A';
+            if (m >= 70) return 'A-';
+            if (m >= 65) return 'B+';
+            if (m >= 60) return 'B';
+            if (m >= 55) return 'C+';
+            if (m >= 50) return 'C';
+            if (m >= 45) return 'D';
+            if (m >= 40) return 'E';
+            return 'G';
+        }
+
+        function calculateGrade(inputElem) {
+            const gradeSpan = inputElem.parentElement.nextElementSibling.querySelector('.grade-display');
+            gradeSpan.innerText = getGrade(inputElem.value);
+        }
+
+        // Hantar Markah
+        function submitMarks() {
+            const inputs = document.querySelectorAll('.mark-input');
+            let dataToSend = [];
+            let savedLocally = JSON.parse(localStorage.getItem('savedMarks')) || [];
+
+            inputs.forEach(input => {
+                if (input.value.trim() !== "") {
+                    const subjectName = input.getAttribute('data-subject');
+                    const targetColumn = columnMap[subjectName] || "";
+                    
+                    const record = {
+                        action: "update",
+                        name: input.getAttribute('data-name'),
+                        className: input.getAttribute('data-class'),
+                        subject: subjectName,
+                        targetColumn: targetColumn,
+                        mark: input.value,
+                        grade: getGrade(input.value)
+                    };
+                    dataToSend.push(record);
+
+                    // Simpanan lokal untuk dashboard guru
+                    const existingIdx = savedLocally.findIndex(x => x.name === record.name && x.subject === record.subject);
+                    if(existingIdx > -1) savedLocally[existingIdx] = record;
+                    else savedLocally.push(record);
+                }
+            });
+
+            if (dataToSend.length === 0) {
+                alert("Sila masukkan sekurang-kurangnya satu markah sebelum menghantar.");
+                return;
+            }
+
+            // Simpan ke lokal untuk paparan dashboard
+            localStorage.setItem('savedMarks', JSON.stringify(savedLocally));
+
+            // Hantar ke Google Apps Script
+            alert("Sistem sedang menghantar data ke Google Sheets. Tekan OK dan tunggu sebentar.");
+            
+            fetch(scriptUrl, {
+                method: "POST",
+                mode: 'no-cors', // Penting jika GAS tidak benarkan CORS, tetapi kita tidak akan dapat response success 200
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(dataToSend)
+            }).then(() => {
+                alert("Data berjaya dihantar ke sistem pangkalan data utama!");
+                renderDashboard();
+                // Kosongkan form
+                inputs.forEach(input => { input.value = ''; calculateGrade(input); });
+            }).catch(err => {
+                console.error(err);
+                alert("Terdapat ralat ketika menghantar data.");
+            });
+        }
+
+        // Tab Navigation
+        function showEntryTab() {
+            document.getElementById('entryTab').classList.remove('hidden');
+            document.getElementById('manageTab').classList.add('hidden');
+        }
+
+        function showManageTab() {
+            document.getElementById('entryTab').classList.add('hidden');
+            document.getElementById('manageTab').classList.remove('hidden');
+            renderDashboard();
+        }
+
+        // Dashboard Paparan & Tindakan
+        function renderDashboard() {
+            const tbody = document.querySelector('#savedMarksTable tbody');
+            tbody.innerHTML = '';
+            let savedLocally = JSON.parse(localStorage.getItem('savedMarks')) || [];
+            
+            // Tapis hanya subjek milik guru yang log masuk ini
+            const teacherRecords = savedLocally.filter(rec => currentTeacher.subjects.includes(`${rec.subject} ${rec.className}`));
+
+            if(teacherRecords.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Tiada rekod markah dijumpai di log tempatan.</td></tr>';
+                return;
+            }
+
+            teacherRecords.forEach((rec, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${rec.name}</td>
+                        <td>${rec.subject} (${rec.className})</td>
+                        <td>
+                            <input type="number" id="editMark_${index}" value="${rec.mark}" style="width:60px;">
+                        </td>
+                        <td>${rec.grade}</td>
+                        <td>
+                            <button class="warning" onclick="updateRecord(${index}, '${rec.name}', '${rec.subject}', '${rec.className}')">Kemaskini</button>
+                            <button class="danger" onclick="deleteRecord(${index}, '${rec.name}', '${rec.subject}', '${rec.className}')">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateRecord(index, name, subject, className) {
+            const newMark = document.getElementById(`editMark_${index}`).value;
+            let savedLocally = JSON.parse(localStorage.getItem('savedMarks')) || [];
+            
+            const recordIdx = savedLocally.findIndex(x => x.name === name && x.subject === subject);
+            if (recordIdx > -1) {
+                savedLocally[recordIdx].mark = newMark;
+                savedLocally[recordIdx].grade = getGrade(newMark);
+                localStorage.setItem('savedMarks', JSON.stringify(savedLocally));
+                
+                // Hantar "Update" ke pangkalan data Google
+                const payload = [Object.assign({}, savedLocally[recordIdx], { action: 'update' })];
+                sendToGAS(payload, "Rekod berjaya dikemaskini.");
+            }
+        }
+
+        function deleteRecord(index, name, subject, className) {
+            if(!confirm(`Adakah anda pasti untuk menghapus markah bagi ${name}?`)) return;
+
+            let savedLocally = JSON.parse(localStorage.getItem('savedMarks')) || [];
+            const recordIdx = savedLocally.findIndex(x => x.name === name && x.subject === subject);
+            
+            if (recordIdx > -1) {
+                const deletedRecord = savedLocally[recordIdx];
+                savedLocally.splice(recordIdx, 1);
+                localStorage.setItem('savedMarks', JSON.stringify(savedLocally));
+                
+                // Hantar arahan "Delete" ke Google Apps Script (Contoh: Menghantar markah kosong "")
+                const payload = [Object.assign({}, deletedRecord, { action: 'delete', mark: '', grade: '' })];
+                sendToGAS(payload, "Rekod berjaya dihapuskan.");
+            }
+        }
+
+        function sendToGAS(payload, successMsg) {
+            fetch(scriptUrl, {
+                method: "POST",
+                mode: 'no-cors',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                alert(successMsg);
+                renderDashboard();
+            }).catch(err => alert("Ralat sambungan!"));
+        }
+
+    </script>
+</body>
+</html>
